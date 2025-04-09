@@ -368,6 +368,8 @@ Notiz: ${textToAnalyze}`;
                         }
                     };
                     notes.unshift(newNote);
+                    saveNotes();
+                    renderNotes();
                     resetRecordingUI();
                 }
                 saveNotes();
