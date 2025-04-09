@@ -239,6 +239,14 @@
                 stopRecording();
                 alert(`Fehler bei der Spracherkennung: ${event.error}`);
             };
+
+            recognition.onend = () => {
+                // Ensure UI updates even if recognition stops automatically
+                if (isRecording) {
+                    console.log("Recognition ended automatically, updating UI.");
+                    stopRecording();
+                }
+            };
         }
 
         // Recording Control
