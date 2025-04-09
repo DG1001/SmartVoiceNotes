@@ -1,0 +1,27 @@
+{
+  "name": "Smart Voice Notes",
+  "short_name": "SmartVoiceNotes",
+  "description": "SmartVoice Notes is a web application for creating and analyzing voice notes with the help of AI. The app uses the Web Speech API for speech recognition and OpenAI for AI analysis of the notes.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f5f5f7",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "./icons/icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
-# SmartVoice Notes - KI-gestützte Sprachnotizen
+# <img src="logo.png" alt="Secure Password Generator Logo" width="48"> SmartVoice Notes - KI-gestützte Sprachnotizen
 
-![Screenshot](screenshot.png) */* Platzhalter für zukünftigen Screenshot */*
+![Screenshot](screenshot.png) 
 
 SmartVoice Notes ist eine Webanwendung zur Erstellung und Analyse von Sprachnotizen mit Hilfe von KI. Die App nutzt die Web Speech API für die Spracherkennung und OpenAI für die KI-Analyse der Notizen.
 
