@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main  # Wird ausgelöst, wenn Änderungen in den main-Branch gepusht werden
+      - main
 
 jobs:
   build-and-deploy:
@@ -13,7 +13,6 @@ jobs:
         uses: actions/checkout@v3
 
       # Hier kannst du Build-Schritte einfügen, wenn du sie benötigst
-      # Zum Beispiel für eine JavaScript/Node.js-Anwendung:
       # - name: Install dependencies
       #   run: npm ci
       # - name: Build site
@@ -22,7 +21,8 @@ jobs:
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          branch: gh-pages  # Der Branch, in den deployed werden soll
-          folder: .         # Der Ordner, der deployed werden soll (anpassen je nach Projekt)
-          # folder: dist    # Beispiel für eine Anwendung mit Build-Prozess
-          clean: true       # Löscht bestehende Dateien im Ziel-Branch
+          branch: gh-pages
+          folder: .  # Anpassen falls nötig
+          # folder: dist  # Für Build-Prozesse
+          clean: true
+          token: ${{ secrets.DEPLOY_TOKEN }}  # Verwendet das Repository-Secret
