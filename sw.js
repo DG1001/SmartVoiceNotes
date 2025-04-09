@@ -1,4 +1,4 @@
-const CACHE_NAME = 'smart-voice-notes-v1';
+const CACHE_NAME = 'smart-voice-notes-v2';
 const ASSETS = [
   '/',
   '/index.html',
