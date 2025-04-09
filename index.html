@@ -229,34 +229,15 @@
                         interimTranscript += transcript;
                     }
                 }
-                
-                // Append final results to currentTranscript
-                if (finalTranscript) {
-                    currentTranscript += finalTranscript;
-                }
-                // Display the accumulated final transcript plus the current interim transcript
-                transcript.textContent = currentTranscript + interimTranscript;
+
+                currentTranscript = finalTranscript || interimTranscript;
+                transcript.textContent = currentTranscript;
             };
 
             recognition.onerror = (event) => {
                 console.error('Speech recognition error', event.error);
                 stopRecording();
                 alert(`Fehler bei der Spracherkennung: ${event.error}`);
-            };
-
-            // Automatically restart recognition if it stops unexpectedly
-            recognition.onend = () => {
-                if (isRecording) {
-                    console.log("Recognition ended unexpectedly, restarting...");
-                    try {
-                        recognition.start();
-                    } catch (e) {
-                        console.error("Restart failed:", e);
-                        // Fallback: Stop recording UI if restart fails
-                        stopRecording(); 
-                        alert("Aufnahme konnte nicht automatisch neu gestartet werden.");
-                    }
-                }
             };
         }
 
