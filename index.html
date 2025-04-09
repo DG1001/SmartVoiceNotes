@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#3b82f6">
     <title>SmartVoice Notes - KI-gestützte Sprachnotizen</title>
+    <link rel="manifest" href="./manifest.json">
+    <link rel="icon" href="./logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -87,6 +90,17 @@
                 <div class="text-center py-10 text-gray-500" id="emptyState">
                     <i class="fas fa-notes-medical text-4xl mb-3"></i>
                     <p>Noch keine Notizen vorhanden. Starten Sie eine Aufnahme!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Offline Alert -->
+        <div id="offlineAlert" class="fixed bottom-4 right-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded shadow-md hidden">
+            <div class="flex">
+                <div class="py-1"><i class="fas fa-wifi text-yellow-500 mr-3"></i></div>
+                <div>
+                    <p class="font-bold">Offline-Modus</p>
+                    <p class="text-sm">Sie sind offline. Einige Funktionen sind möglicherweise eingeschränkt.</p>
                 </div>
             </div>
         </div>
@@ -433,6 +447,21 @@ Notiz: ${currentTranscript.trim()}`;
             analyzeBtn.classList.add('hidden');
         }
 
+        // Offline detection
+        const offlineAlert = document.getElementById('offlineAlert');
+        
+        function updateOnlineStatus() {
+            if (navigator.onLine) {
+                offlineAlert.classList.add('hidden');
+            } else {
+                offlineAlert.classList.remove('hidden');
+            }
+        }
+        
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+        updateOnlineStatus(); // Initial check
+        
         // Event Listeners
         recordBtn.addEventListener('click', () => {
             if (isRecording) {
@@ -466,6 +495,21 @@ Notiz: ${currentTranscript.trim()}`;
                 noteModal.classList.add('hidden');
             }
         });
+    </script>
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('ServiceWorker registration failed: ', error);
+                    });
+            });
+        }
     </script>
 </body>
 </html>
