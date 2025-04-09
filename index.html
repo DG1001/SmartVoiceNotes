@@ -305,8 +305,14 @@
                 return;
             }
 
-            analyzeBtn.disabled = true;
-            analyzeBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Analysiere...';
+            // Entscheiden, welcher Button aktualisiert werden soll
+            const isModalAnalysis = !!text; // True, wenn Text übergeben wurde (Modal-Fall)
+            const buttonToUpdate = isModalAnalysis ? modalAnalyzeBtn : analyzeBtn;
+            const originalButtonHTML = buttonToUpdate.innerHTML; // Originalzustand speichern
+
+            buttonToUpdate.disabled = true;
+            buttonToUpdate.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Analysiere...';
+            let analysisPerformedSuccessfully = false; // Flag für erfolgreiche Analyse
 
             try {
                 const prompt = `Analysiere die folgende Notiz in deutscher Sprache und gib eine JSON-Antwort zurück mit:
@@ -323,7 +329,7 @@ Notiz: ${textToAnalyze}`;
                         'Authorization': `Bearer ${apiKey}`
                     },
                     body: JSON.stringify({
-                        model: "gpt-4o-mini",
+                        model: "gpt-4o-mini", // gpt-4o-mini ist günstiger und oft ausreichend
                         messages: [{ role: "user", content: prompt }],
                         temperature: 0.7,
                         response_format: { type: "json_object" }
@@ -331,53 +337,80 @@ Notiz: ${textToAnalyze}`;
                 });
 
                 if (!response.ok) {
-                    throw new Error(`API-Fehler: ${response.status}`);
+                    const errorBody = await response.text();
+                    console.error("API Error Body:", errorBody);
+                    throw new Error(`API-Fehler: ${response.status} ${response.statusText}`);
                 }
 
                 const data = await response.json();
+                
+                if (!data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
+                    console.error("Unexpected API response structure:", data);
+                    throw new Error("Unerwartete Antwortstruktur von der API.");
+                }
+                
                 const analysis = JSON.parse(data.choices[0].message.content);
+                analysisPerformedSuccessfully = true; // Analyse war erfolgreich
 
-                // Wenn wir eine bestehende Notiz analysieren
-                if (text && selectedNoteId) {
+                // Wenn wir eine bestehende Notiz im Modal analysieren
+                if (isModalAnalysis && selectedNoteId) {
                     const noteIndex = notes.findIndex(n => n.id === selectedNoteId);
                     if (noteIndex !== -1) {
                         notes[noteIndex].analyzed = true;
                         notes[noteIndex].analysis = {
-                            category: analysis.category,
-                            keywords: analysis.keywords,
-                            summary: analysis.summary
+                            category: analysis.category || 'Unbekannt', // Fallbacks
+                            keywords: analysis.keywords || '',
+                            summary: analysis.summary || 'Keine Zusammenfassung verfügbar.'
                         };
                         
-                        // Aktualisiere die Modalansicht
-                        modalCategory.textContent = analysis.category;
-                        modalKeywords.textContent = analysis.keywords;
-                        modalSummary.textContent = analysis.summary;
-                        modalAnalyzeBtn.style.display = 'none';
+                        // Aktualisiere die Modalansicht direkt
+                        modalCategory.textContent = notes[noteIndex].analysis.category;
+                        modalKeywords.textContent = notes[noteIndex].analysis.keywords;
+                        modalSummary.textContent = notes[noteIndex].analysis.summary;
+                        modalAnalyzeBtn.style.display = 'none'; // Button im Modal ausblenden
                     }
-                } else {
-                    // Erstelle eine neue Notiz
+                } 
+                // Wenn wir eine neue Notiz direkt nach der Aufnahme analysieren
+                else if (!isModalAnalysis) {
                     const newNote = {
                         id: Date.now().toString(),
                         text: textToAnalyze,
                         createdAt: new Date().toISOString(),
                         analyzed: true,
                         analysis: {
-                            category: analysis.category,
-                            keywords: analysis.keywords,
-                            summary: analysis.summary
+                            category: analysis.category || 'Unbekannt', // Fallbacks
+                            keywords: analysis.keywords || '',
+                            summary: analysis.summary || 'Keine Zusammenfassung verfügbar.'
                         }
                     };
                     notes.unshift(newNote);
-                    resetRecordingUI();
+                    // UI wird erst nach save/render zurückgesetzt
                 }
+                
                 saveNotes();
                 renderNotes();
+
+                // Setze Aufnahme-UI zurück, nur wenn direkt analysiert wurde
+                if (!isModalAnalysis && analysisPerformedSuccessfully) {
+                    resetRecordingUI();
+                }
+
             } catch (error) {
                 console.error('AI Analysis error:', error);
                 alert('Fehler bei der KI-Analyse: ' + error.message);
+                // Stelle sicher, dass der Modal-Button wieder sichtbar ist, falls Analyse fehlschlug
+                if (isModalAnalysis) {
+                     modalAnalyzeBtn.style.display = 'flex';
+                }
             } finally {
-                analyzeBtn.disabled = false;
-                analyzeBtn.innerHTML = '<i class="fas fa-robot mr-2"></i> Mit KI analysieren';
+                // Stelle den korrekten Button wieder her, nur wenn er noch existiert/relevant ist
+                if (buttonToUpdate) {
+                    buttonToUpdate.disabled = false;
+                    // Stelle den ursprünglichen Text wieder her, außer es war die Modal-Analyse und sie war erfolgreich
+                    if (!(isModalAnalysis && analysisPerformedSuccessfully)) {
+                         buttonToUpdate.innerHTML = originalButtonHTML;
+                    }
+                }
             }
         }
 
