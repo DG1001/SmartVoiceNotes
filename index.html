@@ -530,7 +530,8 @@ Notiz: ${textToAnalyze}`;
         });
 
         saveBtn.addEventListener('click', saveNote);
-        analyzeBtn.addEventListener('click', analyzeWithAI);
+        // Wrap analyzeWithAI in an anonymous function to prevent passing the event object
+        analyzeBtn.addEventListener('click', () => analyzeWithAI()); 
         closeModalBtn.addEventListener('click', () => noteModal.classList.add('hidden'));
         modalAnalyzeBtn.addEventListener('click', async () => {
             if (selectedNoteId) {
