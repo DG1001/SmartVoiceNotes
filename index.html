@@ -305,8 +305,12 @@
                 return;
             }
 
-            analyzeBtn.disabled = true;
-            analyzeBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Analysiere...';
+            // Bestimme, welcher Button aktualisiert werden soll
+            const buttonToUpdate = text && selectedNoteId ? modalAnalyzeBtn : analyzeBtn;
+            const originalButtonHTML = buttonToUpdate.innerHTML;
+            
+            buttonToUpdate.disabled = true;
+            buttonToUpdate.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Analysiere...';
 
             try {
                 const prompt = `Analysiere die folgende Notiz in deutscher Sprache und gib eine JSON-Antwort zurück mit:
@@ -331,11 +335,25 @@ Notiz: ${textToAnalyze}`;
                 });
 
                 if (!response.ok) {
-                    throw new Error(`API-Fehler: ${response.status}`);
+                    throw new Error(`API-Fehler: ${response.status} - ${await response.text()}`);
                 }
 
                 const data = await response.json();
-                const analysis = JSON.parse(data.choices[0].message.content);
+                console.log('API response:', data);
+                
+                let analysis;
+                try {
+                    // Versuche direkt das JSON zu verwenden
+                    analysis = JSON.parse(data.choices[0].message.content);
+                } catch (e) {
+                    console.error('JSON parsing error:', e);
+                    // Fallback: Verwende ein einfaches Objekt mit Standardwerten
+                    analysis = {
+                        category: 'Allgemein',
+                        keywords: 'nicht verfügbar',
+                        summary: data.choices[0].message.content || 'Zusammenfassung nicht verfügbar'
+                    };
+                }
 
                 // Wenn wir eine bestehende Notiz analysieren
                 if (text && selectedNoteId) {
@@ -376,8 +394,8 @@ Notiz: ${textToAnalyze}`;
                 console.error('AI Analysis error:', error);
                 alert('Fehler bei der KI-Analyse: ' + error.message);
             } finally {
-                analyzeBtn.disabled = false;
-                analyzeBtn.innerHTML = '<i class="fas fa-robot mr-2"></i> Mit KI analysieren';
+                buttonToUpdate.disabled = false;
+                buttonToUpdate.innerHTML = originalButtonHTML;
             }
         }
 
@@ -536,14 +554,7 @@ Notiz: ${textToAnalyze}`;
             if (selectedNoteId) {
                 const note = notes.find(n => n.id === selectedNoteId);
                 if (note && !note.analyzed) {
-                    modalAnalyzeBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Analysiere...';
-                    modalAnalyzeBtn.disabled = true;
-                    try {
-                        await analyzeWithAI(note.text);
-                    } finally {
-                        modalAnalyzeBtn.innerHTML = '<i class="fas fa-robot mr-2"></i> Mit KI analysieren';
-                        modalAnalyzeBtn.disabled = false;
-                    }
+                    await analyzeWithAI(note.text);
                 }
             }
         });
