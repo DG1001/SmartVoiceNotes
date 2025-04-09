@@ -72,11 +72,17 @@
         <!-- Recording Section -->
         <div class="bg-white p-6 rounded-lg shadow-md mb-8">
             <h2 class="text-lg font-semibold mb-4">Neue Sprachnotiz erstellen</h2>
-            <div class="flex flex-col items-center">
-                <button id="recordBtn" class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-full mb-4 flex items-center">
+            <div class="flex justify-center items-center mb-4">
+                <button id="recordBtn" class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-full flex items-center">
                     <i class="fas fa-microphone mr-2"></i>
                     <span id="recordText">Aufnahme starten</span>
                 </button>
+                <button id="resumeBtn" class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-full mb-4 flex items-center hidden ml-3">
+                    <i class="fas fa-play mr-2"></i>
+                    <span>Fortsetzen</span>
+                </button>
+            </div>
+            <div class="flex flex-col items-center w-full">
                 <div id="recordingStatus" class="text-gray-500 mb-4 hidden">
                     <i class="fas fa-circle text-red-500 mr-2 pulse-recording"></i>
                     <span>Aufnahme läuft...</span>
@@ -170,6 +176,7 @@
     <script>
         // DOM Elements
         const recordBtn = document.getElementById('recordBtn');
+        const resumeBtn = document.getElementById('resumeBtn'); // Added resume button
         const recordText = document.getElementById('recordText');
         const recordingStatus = document.getElementById('recordingStatus');
         const transcriptContainer = document.getElementById('transcriptContainer');
@@ -193,6 +200,7 @@
         // App State
         let notes = JSON.parse(localStorage.getItem('smartVoiceNotes')) || [];
         let currentTranscript = '';
+        let baseTranscript = ''; // To store text before resuming
         let isRecording = false;
         let recognition;
         let selectedNoteId = null;
@@ -229,9 +237,10 @@
                         interimTranscript += transcript;
                     }
                 }
-
-                currentTranscript = finalTranscript || interimTranscript;
-                transcript.textContent = currentTranscript;
+                
+                // Append new results to the base transcript
+                currentTranscript = baseTranscript + finalTranscript;
+                transcript.textContent = baseTranscript + (finalTranscript || interimTranscript); // Show interim results appended
             };
 
             recognition.onerror = (event) => {
@@ -250,24 +259,35 @@
         }
 
         // Recording Control
-        function startRecording() {
+        function startRecording(resume = false) {
             if (!recognition) setupSpeechRecognition();
-            
+
             try {
+                if (resume) {
+                    baseTranscript = currentTranscript ? currentTranscript + ' ' : ''; // Add space if resuming
+                } else {
+                    baseTranscript = '';
+                    currentTranscript = '';
+                    transcript.textContent = '';
+                }
+
                 recognition.start();
                 isRecording = true;
+                // Update UI for active recording
                 recordBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
                 recordBtn.classList.add('bg-red-600', 'hover:bg-red-700');
                 recordText.textContent = 'Aufnahme stoppen';
+                recordBtn.classList.remove('hidden'); // Ensure record button is visible (as stop button)
+                resumeBtn.classList.add('hidden'); // Hide resume button during recording
                 recordingStatus.classList.remove('hidden');
                 transcriptContainer.classList.remove('hidden');
                 saveBtn.classList.add('hidden');
                 analyzeBtn.classList.add('hidden');
-                transcript.textContent = '';
-                currentTranscript = '';
+
             } catch (e) {
                 console.error('Recording start failed:', e);
                 alert('Aufnahme konnte nicht gestartet werden. Bitte Mikrofon freigeben.');
+                isRecording = false; // Ensure state is correct on error
             }
         }
 
@@ -276,15 +296,23 @@
                 recognition.stop();
             }
             isRecording = false;
-            recordBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
-            recordBtn.classList.add('bg-red-500', 'hover:bg-red-600');
-            recordText.textContent = 'Aufnahme starten';
+            recordBtn.classList.remove('bg-red-600', 'hover:bg-red-700'); // Stop button style
+            recordBtn.classList.add('bg-red-500', 'hover:bg-red-600');   // Start button style
             recordingStatus.classList.add('hidden');
-            
-            if (currentTranscript.trim()) {
+
+            const hasTranscript = currentTranscript.trim();
+            if (hasTranscript) {
+                recordText.textContent = 'Neue Aufnahme'; // Change text to indicate clearing
+                resumeBtn.classList.remove('hidden'); // Show resume button
                 saveBtn.classList.remove('hidden');
                 analyzeBtn.classList.remove('hidden');
+            } else {
+                recordText.textContent = 'Aufnahme starten'; // Standard text
+                resumeBtn.classList.add('hidden'); // Hide resume button if no transcript
+                saveBtn.classList.add('hidden');
+                analyzeBtn.classList.add('hidden');
             }
+            recordBtn.classList.remove('hidden'); // Ensure start button is visible
         }
 
         // Note Management
@@ -507,10 +535,14 @@ Notiz: ${textToAnalyze}`;
 
         function resetRecordingUI() {
             currentTranscript = '';
+            baseTranscript = ''; // Reset base transcript as well
             transcript.textContent = '';
             transcriptContainer.classList.add('hidden');
             saveBtn.classList.add('hidden');
             analyzeBtn.classList.add('hidden');
+            resumeBtn.classList.add('hidden'); // Hide resume button
+            recordText.textContent = 'Aufnahme starten'; // Reset button text
+            recordBtn.classList.remove('hidden'); // Ensure start button is visible
         }
 
         // Offline detection
@@ -533,8 +565,14 @@ Notiz: ${textToAnalyze}`;
             if (isRecording) {
                 stopRecording();
             } else {
-                startRecording();
+                // Start a new recording, clearing existing transcript
+                startRecording(false); 
             }
+        });
+
+        resumeBtn.addEventListener('click', () => {
+            // Resume recording, appending to existing transcript
+            startRecording(true);
         });
 
         saveBtn.addEventListener('click', saveNote);
