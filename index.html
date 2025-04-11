@@ -104,7 +104,16 @@
 
         <!-- Notes List -->
         <div>
-            <h2 class="text-lg font-semibold mb-4">Ihre Notizen</h2>
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold">Ihre Notizen</h2>
+                <div class="flex items-center space-x-2">
+                    <label for="keywordFilter" class="text-sm font-medium text-gray-700">Filtern nach Keyword:</label>
+                    <select id="keywordFilter" class="rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-sm py-1">
+                        <option value="all">Alle Keywords</option>
+                        <!-- Keywords will be added here dynamically -->
+                    </select>
+                </div>
+            </div>
             <div id="notesList" class="space-y-4">
                 <!-- Notes will be added here dynamically -->
                 <div class="text-center py-10 text-gray-500" id="emptyState">
@@ -196,6 +205,7 @@
         const apiKeyInput = document.getElementById('apiKeyInput');
         const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
         const exportBtn = document.getElementById('exportBtn');
+        const keywordFilter = document.getElementById('keywordFilter');
 
         // App State
         let notes = JSON.parse(localStorage.getItem('smartVoiceNotes')) || [];
@@ -205,10 +215,12 @@
         let recognition;
         let selectedNoteId = null;
         let apiKey = localStorage.getItem('openaiApiKey') || '';
+        let currentKeywordFilter = 'all'; // 'all' or the selected keyword
 
         // Initialize
         apiKeyInput.value = apiKey;
         updateApiKeyUI();
+        updateKeywordFilterDropdown(); // Add this call
         renderNotes();
 
         // Web Speech API Setup
@@ -328,7 +340,8 @@
 
             notes.unshift(newNote);
             saveNotes();
-            renderNotes();
+            updateKeywordFilterDropdown(); // Update filter options
+            renderNotes(); // Render with current filter
             resetRecordingUI();
         }
 
@@ -407,7 +420,8 @@ Notiz: ${textToAnalyze}`;
                     resetRecordingUI();
                 }
                 saveNotes();
-                renderNotes();
+                updateKeywordFilterDropdown(); // Update filter options
+                renderNotes(); // Render with current filter
             } catch (error) {
                 console.error('AI Analysis error:', error);
                 alert('Fehler bei der KI-Analyse: ' + error.message);
@@ -420,7 +434,8 @@ Notiz: ${textToAnalyze}`;
         function deleteNote(id) {
             notes = notes.filter(note => note.id !== id);
             saveNotes();
-            renderNotes();
+            updateKeywordFilterDropdown(); // Update filter options
+            renderNotes(); // Render with current filter
             noteModal.classList.add('hidden');
         }
 
@@ -468,9 +483,57 @@ Notiz: ${textToAnalyze}`;
             linkElement.click();
         }
 
+        function updateKeywordFilterDropdown() {
+            const keywordCounts = {};
+            notes.forEach(note => {
+                if (note.analyzed && note.analysis && note.analysis.keywords) {
+                    const keywords = note.analysis.keywords.split(',').map(k => k.trim().toLowerCase());
+                    keywords.forEach(keyword => {
+                        if (keyword) { // Ensure keyword is not empty
+                           keywordCounts[keyword] = (keywordCounts[keyword] || 0) + 1;
+                        }
+                    });
+                }
+            });
+
+            const sortedKeywords = Object.entries(keywordCounts)
+                .sort(([, countA], [, countB]) => countB - countA)
+                .map(([keyword]) => keyword);
+
+            const topKeywords = sortedKeywords.slice(0, 10);
+
+            // Clear existing options except the first one ("Alle Keywords")
+            while (keywordFilter.options.length > 1) {
+                keywordFilter.remove(1);
+            }
+
+            // Add top keywords
+            topKeywords.forEach(keyword => {
+                const option = document.createElement('option');
+                option.value = keyword;
+                // Capitalize first letter for display
+                option.textContent = keyword.charAt(0).toUpperCase() + keyword.slice(1);
+                keywordFilter.appendChild(option);
+            });
+
+            // Set the selected option based on the current filter state
+            keywordFilter.value = currentKeywordFilter;
+        }
+
         // UI Rendering
         function renderNotes() {
-            if (notes.length === 0) {
+            const filteredNotes = notes.filter(note => {
+                if (currentKeywordFilter === 'all') {
+                    return true; // Show all notes
+                }
+                if (!note.analyzed || !note.analysis || !note.analysis.keywords) {
+                    return false; // Hide notes without keywords if filtering
+                }
+                const noteKeywords = note.analysis.keywords.split(',').map(k => k.trim().toLowerCase());
+                return noteKeywords.includes(currentKeywordFilter);
+            });
+
+            if (filteredNotes.length === 0) {
                 emptyState.classList.remove('hidden');
                 notesList.innerHTML = '';
                 return;
@@ -479,7 +542,24 @@ Notiz: ${textToAnalyze}`;
             emptyState.classList.add('hidden');
             notesList.innerHTML = '';
 
-            notes.forEach(note => {
+            if (notes.length > 0 && filteredNotes.length === 0) {
+                 // Show a specific message if notes exist but are filtered out
+                 emptyState.innerHTML = `
+                    <i class="fas fa-filter text-4xl mb-3"></i>
+                    <p>Keine Notizen entsprechen dem Keyword "${currentKeywordFilter}".</p>
+                 `;
+                 emptyState.classList.remove('hidden');
+            } else if (notes.length === 0) {
+                 // Original empty state
+                 emptyState.innerHTML = `
+                    <i class="fas fa-notes-medical text-4xl mb-3"></i>
+                    <p>Noch keine Notizen vorhanden. Starten Sie eine Aufnahme!</p>
+                 `;
+                 emptyState.classList.remove('hidden');
+            }
+
+
+            filteredNotes.forEach(note => {
                 const noteElement = document.createElement('div');
                 noteElement.className = 'note-card bg-white p-4 rounded-lg shadow-sm cursor-pointer hover:shadow-md';
                 noteElement.dataset.id = note.id;
@@ -602,6 +682,11 @@ Notiz: ${textToAnalyze}`;
         });
         saveApiKeyBtn.addEventListener('click', saveApiKey);
         exportBtn.addEventListener('click', exportNotes);
+
+        keywordFilter.addEventListener('change', (e) => {
+            currentKeywordFilter = e.target.value;
+            renderNotes(); // Re-render notes with the new filter
+        });
         
         // API Key UI controls
         document.getElementById('toggleApiKeyBtn').addEventListener('click', () => {
