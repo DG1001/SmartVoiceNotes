@@ -94,6 +94,12 @@
                         <i class="fas fa-check-circle mr-2"></i> Verbindung testen
                     </button>
                 </div>
+                <div class="mt-3 p-3 bg-yellow-50 rounded-md text-sm">
+                    <p class="font-medium text-yellow-700"><i class="fas fa-info-circle mr-1"></i> CORS-Hinweis:</p>
+                    <p class="text-yellow-600 mt-1">Für die Verbindung zu Ihrem CalDAV-Server wird ein CORS-Proxy verwendet. Bitte aktivieren Sie den Proxy-Zugriff einmalig unter: 
+                        <a href="https://cors-anywhere.herokuapp.com/corsdemo" target="_blank" class="text-blue-500 underline">cors-anywhere.herokuapp.com/corsdemo</a>
+                    </p>
+                </div>
                 <p class="text-sm text-gray-500 mt-2">Ihre Kalender-Zugangsdaten werden nur lokal im Browser gespeichert und nicht an uns übertragen.</p>
             </div>
             <div id="calDavStatus" class="text-sm text-green-600 flex items-center hidden">
@@ -625,12 +631,18 @@ Notiz: ${textToAnalyze}`;
             testBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Teste Verbindung...';
             
             try {
-                const response = await fetch(url, {
+                // Verwende einen CORS-Proxy für die Anfrage
+                const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+                const targetUrl = url;
+                
+                // Hinweis: Für die Produktionsumgebung sollte ein eigener Proxy-Server verwendet werden
+                const response = await fetch(proxyUrl + targetUrl, {
                     method: 'PROPFIND',
                     headers: {
                         'Content-Type': 'application/xml; charset=utf-8',
                         'Depth': '0',
-                        'Authorization': 'Basic ' + btoa(username + ':' + password)
+                        'Authorization': 'Basic ' + btoa(username + ':' + password),
+                        'X-Requested-With': 'XMLHttpRequest'
                     },
                     body: '<?xml version="1.0" encoding="utf-8" ?>' +
                           '<d:propfind xmlns:d="DAV:">' +
@@ -645,7 +657,8 @@ Notiz: ${textToAnalyze}`;
                 }
             } catch (error) {
                 console.error('CalDAV connection test error:', error);
-                alert('Fehler bei der Verbindung zum CalDAV-Server: ' + error.message);
+                alert('Fehler bei der Verbindung zum CalDAV-Server: ' + error.message + 
+                      '\n\nHinweis: Wenn Sie einen CORS-Fehler sehen, müssen Sie möglicherweise den CORS-Proxy aktivieren unter: https://cors-anywhere.herokuapp.com/corsdemo');
             } finally {
                 testBtn.disabled = false;
                 testBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Verbindung testen';
@@ -965,14 +978,18 @@ END:VCALENDAR`;
                 
                 // Generiere einen Dateinamen für den Termin
                 const filename = `${uid}.ics`;
-                const eventUrl = calDavUrl.endsWith('/') ? calDavUrl + filename : calDavUrl + '/' + filename;
                 
-                // Sende den Termin an den CalDAV-Server
-                const response = await fetch(eventUrl, {
+                // Verwende einen CORS-Proxy für die Anfrage
+                const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+                const targetUrl = calDavUrl.endsWith('/') ? calDavUrl + filename : calDavUrl + '/' + filename;
+                
+                // Sende den Termin an den CalDAV-Server über den Proxy
+                const response = await fetch(proxyUrl + targetUrl, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'text/calendar; charset=utf-8',
-                        'Authorization': 'Basic ' + btoa(calDavUser + ':' + calDavPassword)
+                        'Authorization': 'Basic ' + btoa(calDavUser + ':' + calDavPassword),
+                        'X-Requested-With': 'XMLHttpRequest'
                     },
                     body: icalData
                 });
@@ -984,7 +1001,8 @@ END:VCALENDAR`;
                 }
             } catch (error) {
                 console.error('CalDAV event creation error:', error);
-                alert('Fehler beim Erstellen des Termins: ' + error.message);
+                alert('Fehler beim Erstellen des Termins: ' + error.message + 
+                      '\n\nHinweis: Wenn Sie einen CORS-Fehler sehen, müssen Sie möglicherweise den CORS-Proxy aktivieren unter: https://cors-anywhere.herokuapp.com/corsdemo');
                 return false;
             }
         }
