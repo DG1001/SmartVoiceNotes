@@ -280,7 +280,7 @@
         let apiKey = localStorage.getItem('openaiApiKey') || '';
         let currentKeywordFilter = 'all'; // 'all' or the selected keyword
         let currentCategoryFilter = 'all'; // 'all' or the selected category
-        
+        let calendarEmail = localStorage.getItem('calendarEmail') || '';
 
         // Initialize
         apiKeyInput.value = apiKey;
@@ -543,6 +543,7 @@ Notiz: ${textToAnalyze}`;
 
         function saveNotes() {
             localStorage.setItem('smartVoiceNotes', JSON.stringify(notes));
+            console.log("Notes saved:", notes); // Debug-Ausgabe
         }
 
         function saveApiKey() {
@@ -568,9 +569,6 @@ Notiz: ${textToAnalyze}`;
             }
         }
         
-        
-        // Kalender-Konfiguration
-        let calendarEmail = localStorage.getItem('calendarEmail') || '';
         
         // Funktion zum Speichern der Kalender-E-Mail
         function saveCalendarEmail() {
@@ -703,6 +701,8 @@ Notiz: ${textToAnalyze}`;
 
         // UI Rendering
         function renderNotes() {
+            console.log("Rendering notes:", notes); // Debug-Ausgabe
+            
             const filteredNotes = notes.filter(note => {
                 // Category filter
                 const categoryMatch = currentCategoryFilter === 'all' ||
@@ -716,7 +716,9 @@ Notiz: ${textToAnalyze}`;
                 return categoryMatch && keywordMatch;
             });
 
-            if (filteredNotes.length === 0) {
+            console.log("Filtered notes:", filteredNotes); // Debug-Ausgabe
+            
+            if (filteredNotes.length === 0 && notes.length === 0) {
                 emptyState.classList.remove('hidden');
                 notesList.innerHTML = '';
                 return;
@@ -1153,6 +1155,13 @@ END:VCALENDAR`;
                         console.log('ServiceWorker registration failed: ', error);
                     });
             });
+        }
+        
+        // Debug-Funktion zum Anzeigen des localStorage
+        console.log("localStorage contents:");
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            console.log(`${key}: ${localStorage.getItem(key)}`);
         }
     </script>
     
