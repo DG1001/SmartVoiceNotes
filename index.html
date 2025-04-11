@@ -104,15 +104,15 @@
 
         <!-- Notes List -->
         <div>
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg font-semibold">Ihre Notizen</h2>
-                <div class="flex items-center space-x-2">
-                    <label for="keywordFilter" class="text-sm font-medium text-gray-700">Filtern nach Keyword:</label>
-                    <select id="keywordFilter" class="rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-sm py-1">
-                        <option value="all">Alle Keywords</option>
-                        <!-- Keywords will be added here dynamically -->
-                    </select>
-                </div>
+            <div class="flex flex-col sm:flex-row justify-end items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 mb-4">
+                 <select id="categoryFilter" class="w-full sm:w-auto rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-sm py-1 px-2">
+                     <option value="all">Alle Kategorien</option>
+                     <!-- Categories will be added here dynamically -->
+                 </select>
+                 <select id="keywordFilter" class="w-full sm:w-auto rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-sm py-1 px-2">
+                     <option value="all">Alle Keywords</option>
+                     <!-- Keywords will be added here dynamically -->
+                 </select>
             </div>
             <div id="notesList" class="space-y-4">
                 <!-- Notes will be added here dynamically -->
@@ -206,6 +206,7 @@
         const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
         const exportBtn = document.getElementById('exportBtn');
         const keywordFilter = document.getElementById('keywordFilter');
+        const categoryFilter = document.getElementById('categoryFilter'); // Added category filter element
 
         // App State
         let notes = JSON.parse(localStorage.getItem('smartVoiceNotes')) || [];
@@ -216,11 +217,13 @@
         let selectedNoteId = null;
         let apiKey = localStorage.getItem('openaiApiKey') || '';
         let currentKeywordFilter = 'all'; // 'all' or the selected keyword
+        let currentCategoryFilter = 'all'; // 'all' or the selected category
 
         // Initialize
         apiKeyInput.value = apiKey;
         updateApiKeyUI();
-        updateKeywordFilterDropdown(); // Add this call
+        updateKeywordFilterDropdown();
+        updateCategoryFilterDropdown(); // Add this call
         renderNotes();
 
         // Web Speech API Setup
@@ -340,8 +343,9 @@
 
             notes.unshift(newNote);
             saveNotes();
-            updateKeywordFilterDropdown(); // Update filter options
-            renderNotes(); // Render with current filter
+            updateKeywordFilterDropdown(); // Update keyword filter options
+            updateCategoryFilterDropdown(); // Update category filter options
+            renderNotes(); // Render with current filters
             resetRecordingUI();
         }
 
@@ -420,8 +424,9 @@ Notiz: ${textToAnalyze}`;
                     resetRecordingUI();
                 }
                 saveNotes();
-                updateKeywordFilterDropdown(); // Update filter options
-                renderNotes(); // Render with current filter
+                updateKeywordFilterDropdown(); // Update keyword filter options
+                updateCategoryFilterDropdown(); // Update category filter options
+                renderNotes(); // Render with current filters
             } catch (error) {
                 console.error('AI Analysis error:', error);
                 alert('Fehler bei der KI-Analyse: ' + error.message);
@@ -434,8 +439,9 @@ Notiz: ${textToAnalyze}`;
         function deleteNote(id) {
             notes = notes.filter(note => note.id !== id);
             saveNotes();
-            updateKeywordFilterDropdown(); // Update filter options
-            renderNotes(); // Render with current filter
+            updateKeywordFilterDropdown(); // Update keyword filter options
+            updateCategoryFilterDropdown(); // Update category filter options
+            renderNotes(); // Render with current filters
             noteModal.classList.add('hidden');
         }
 
@@ -520,17 +526,47 @@ Notiz: ${textToAnalyze}`;
             keywordFilter.value = currentKeywordFilter;
         }
 
+        function updateCategoryFilterDropdown() {
+            const categories = new Set();
+            notes.forEach(note => {
+                if (note.analyzed && note.analysis && note.analysis.category) {
+                    categories.add(note.analysis.category);
+                }
+            });
+
+            const sortedCategories = Array.from(categories).sort((a, b) => a.localeCompare(b));
+
+            // Clear existing options except the first one ("Alle Kategorien")
+            while (categoryFilter.options.length > 1) {
+                categoryFilter.remove(1);
+            }
+
+            // Add categories
+            sortedCategories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category; // Use category name directly
+                categoryFilter.appendChild(option);
+            });
+
+            // Set the selected option based on the current filter state
+            categoryFilter.value = currentCategoryFilter;
+        }
+
+
         // UI Rendering
         function renderNotes() {
             const filteredNotes = notes.filter(note => {
-                if (currentKeywordFilter === 'all') {
-                    return true; // Show all notes
-                }
-                if (!note.analyzed || !note.analysis || !note.analysis.keywords) {
-                    return false; // Hide notes without keywords if filtering
-                }
-                const noteKeywords = note.analysis.keywords.split(',').map(k => k.trim().toLowerCase());
-                return noteKeywords.includes(currentKeywordFilter);
+                // Category filter
+                const categoryMatch = currentCategoryFilter === 'all' ||
+                                      (note.analyzed && note.analysis && note.analysis.category === currentCategoryFilter);
+
+                // Keyword filter
+                const keywordMatch = currentKeywordFilter === 'all' ||
+                                     (note.analyzed && note.analysis && note.analysis.keywords &&
+                                      note.analysis.keywords.split(',').map(k => k.trim().toLowerCase()).includes(currentKeywordFilter));
+
+                return categoryMatch && keywordMatch;
             });
 
             if (filteredNotes.length === 0) {
@@ -544,9 +580,17 @@ Notiz: ${textToAnalyze}`;
 
             if (notes.length > 0 && filteredNotes.length === 0) {
                  // Show a specific message if notes exist but are filtered out
+                 let filterMessage = "Keine Notizen entsprechen den aktuellen Filtern.";
+                 if (currentCategoryFilter !== 'all' && currentKeywordFilter !== 'all') {
+                     filterMessage = `Keine Notizen entsprechen der Kategorie "${currentCategoryFilter}" und dem Keyword "${currentKeywordFilter}".`;
+                 } else if (currentCategoryFilter !== 'all') {
+                     filterMessage = `Keine Notizen entsprechen der Kategorie "${currentCategoryFilter}".`;
+                 } else if (currentKeywordFilter !== 'all') {
+                     filterMessage = `Keine Notizen entsprechen dem Keyword "${currentKeywordFilter}".`;
+                 }
                  emptyState.innerHTML = `
                     <i class="fas fa-filter text-4xl mb-3"></i>
-                    <p>Keine Notizen entsprechen dem Keyword "${currentKeywordFilter}".</p>
+                    <p>${filterMessage}</p>
                  `;
                  emptyState.classList.remove('hidden');
             } else if (notes.length === 0) {
@@ -685,6 +729,11 @@ Notiz: ${textToAnalyze}`;
 
         keywordFilter.addEventListener('change', (e) => {
             currentKeywordFilter = e.target.value;
+            renderNotes(); // Re-render notes with the new filter
+        });
+
+        categoryFilter.addEventListener('change', (e) => {
+            currentCategoryFilter = e.target.value;
             renderNotes(); // Re-render notes with the new filter
         });
         
