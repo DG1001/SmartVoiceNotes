@@ -1,6 +1,6 @@
 # <img src="logo.png" alt="SmartVoice Notes Logo" width="48"> SmartVoice Notes - KI-gestützte Sprachnotizen
 
-![Screenshot](screenshot.png) 
+<img src="screenshot.jpeg" alt="SmartVoice Notes Screenshot" width="400">
 
 SmartVoice Notes ist eine Webanwendung zur Erstellung und Analyse von Sprachnotizen mit Hilfe von KI. Die App nutzt die Web Speech API für die Spracherkennung und OpenAI für die KI-Analyse der Notizen.
 
