@@ -281,12 +281,10 @@
         let currentKeywordFilter = 'all'; // 'all' or the selected keyword
         let currentCategoryFilter = 'all'; // 'all' or the selected category
         
-        // Kalender-Konfiguration
-        let calendarEmail = localStorage.getItem('calendarEmail') || '';
 
         // Initialize
         apiKeyInput.value = apiKey;
-        updateApiKeyUI();
+        document.getElementById('calendarEmailInput').value = calendarEmail;
         updateApiKeyUI();
         updateCalendarUI();
         updateKeywordFilterDropdown();
@@ -570,37 +568,6 @@ Notiz: ${textToAnalyze}`;
             }
         }
         
-        // Google Calendar Integration
-        function updateGoogleCalendarUI() {
-            const googleCalendarContent = document.getElementById('googleCalendarContent');
-            const googleCalendarStatus = document.getElementById('googleCalendarStatus');
-            const toggleGoogleCalendarIcon = document.getElementById('toggleGoogleCalendarIcon');
-            const googleAuthStatus = document.getElementById('googleAuthStatus');
-            
-            if (googleAccessToken && new Date(googleTokenExpiry) > new Date()) {
-                // Gültiges Token vorhanden
-                googleCalendarContent.classList.add('hidden');
-                googleCalendarStatus.classList.remove('hidden');
-                toggleGoogleCalendarIcon.classList.remove('fa-chevron-up');
-                toggleGoogleCalendarIcon.classList.add('fa-chevron-down');
-                
-                // Zeige E-Mail-Adresse an, wenn vorhanden
-                if (googleUserEmail) {
-                    const statusSpan = googleCalendarStatus.querySelector('span');
-                    statusSpan.textContent = `Mit Google Kalender verbunden (${googleUserEmail})`;
-                }
-            } else {
-                // Kein gültiges Token
-                googleCalendarContent.classList.remove('hidden');
-                googleCalendarStatus.classList.add('hidden');
-                googleAuthStatus.classList.add('hidden');
-                
-                // Token abgelaufen, aber Refresh-Token vorhanden
-                if (googleRefreshToken && googleAccessToken) {
-                    refreshGoogleToken();
-                }
-            }
-        }
         
         // Kalender-Konfiguration
         let calendarEmail = localStorage.getItem('calendarEmail') || '';
