@@ -42,63 +42,32 @@
             </div>
         </header>
 
-        <!-- Configuration Sections -->
-        <div class="bg-white p-4 rounded-lg shadow-md mb-6" id="configSection">
+        <!-- API Key Input -->
+        <div class="bg-white p-4 rounded-lg shadow-md mb-6" id="apiKeySection">
             <div class="flex justify-between items-center mb-3">
-                <h2 class="text-lg font-semibold">Anwendungskonfiguration</h2>
-                <button id="toggleConfigBtn" class="text-blue-500 hover:text-blue-700">
-                    <i class="fas fa-chevron-down" id="toggleConfigIcon"></i>
+                <h2 class="text-lg font-semibold">OpenAI API Konfiguration</h2>
+                <button id="toggleApiKeyBtn" class="text-blue-500 hover:text-blue-700">
+                    <i class="fas fa-chevron-down" id="toggleApiKeyIcon"></i>
                 </button>
             </div>
-            <div id="configContent" class="hidden space-y-4">
-                <!-- API Key Input -->
-                <div id="apiKeySection">
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="font-medium">OpenAI API Konfiguration</h3>
-                        <button id="toggleApiKeyBtn" class="text-blue-500 hover:text-blue-700">
-                            <i class="fas fa-chevron-down" id="toggleApiKeyIcon"></i>
-                        </button>
-                    </div>
-                    <div id="apiKeyContent" class="hidden">
-                        <div class="flex flex-col sm:flex-row gap-3">
+            <div id="apiKeyContent" class="hidden">
+                <div class="flex flex-col sm:flex-row gap-3">
                     <input type="password" id="apiKeyInput" placeholder="Ihren OpenAI API-Key eingeben" 
                            class="flex-grow px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <button id="saveApiKeyBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md">
                         <i class="fas fa-save mr-2"></i> Speichern
                     </button>
-                        </div>
-                        <p class="text-sm text-gray-500 mt-2">Ihr API-Key wird nur lokal im Browser gespeichert und nicht an uns übertragen.</p>
-                    </div>
-
-                    <!-- CalDAV Configuration -->
-                <div>
-                    <h3 class="font-medium mb-2">Kalenderkonfiguration (Nextcloud)</h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <input type="text" id="caldavUrl" placeholder="CalDAV URL (z.B. https://nextcloud.example.com/remote.php/dav)" 
-                               class="px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <input type="text" id="caldavUser" placeholder="Benutzername" 
-                               class="px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <input type="password" id="caldavPass" placeholder="Passwort" 
-                               class="px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <input type="text" id="caldavCalendar" placeholder="Kalendername" 
-                               class="px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    <button id="saveCalDavBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md mt-3">
-                        <i class="fas fa-save mr-2"></i> Kalenderkonfiguration speichern
-                    </button>
-                    <p class="text-sm text-gray-500 mt-2">Die Kalenderdaten werden nur lokal im Browser gespeichert.</p>
-                    </div>
                 </div>
-                <div id="configStatus" class="text-sm flex items-center space-x-4">
-                    <div id="apiKeyStatus" class="text-green-600 flex items-center">
-                        <i class="fas fa-check-circle mr-2"></i>
-                        <span>API-Key ist gesetzt</span>
-                        <button id="changeApiKeyBtn" class="text-blue-500 hover:text-blue-700 ml-2 text-xs">
-                            Ändern
-                        </button>
-                    </div>
-                </div>
+                <p class="text-sm text-gray-500 mt-2">Ihr API-Key wird nur lokal im Browser gespeichert und nicht an uns übertragen.</p>
             </div>
+            <div id="apiKeyStatus" class="text-sm text-green-600 flex items-center">
+                <i class="fas fa-check-circle mr-2"></i>
+                <span>API-Key ist gesetzt</span>
+                <button id="changeApiKeyBtn" class="text-blue-500 hover:text-blue-700 ml-2 text-xs">
+                    Ändern
+                </button>
+            </div>
+        </div>
 
         <!-- Recording Section -->
         <div class="bg-white p-6 rounded-lg shadow-md mb-8">
@@ -247,25 +216,14 @@
         let recognition;
         let selectedNoteId = null;
         let apiKey = localStorage.getItem('openaiApiKey') || '';
-        let calDavConfig = JSON.parse(localStorage.getItem('calDavConfig')) || {
-            url: '',
-            user: '',
-            pass: '',
-            calendar: ''
-        };
         let currentKeywordFilter = 'all'; // 'all' or the selected keyword
         let currentCategoryFilter = 'all'; // 'all' or the selected category
 
         // Initialize
         apiKeyInput.value = apiKey;
-        document.getElementById('caldavUrl').value = calDavConfig.url;
-        document.getElementById('caldavUser').value = calDavConfig.user;
-        document.getElementById('caldavPass').value = calDavConfig.pass;
-        document.getElementById('caldavCalendar').value = calDavConfig.calendar;
-        
         updateApiKeyUI();
         updateKeywordFilterDropdown();
-        updateCategoryFilterDropdown();
+        updateCategoryFilterDropdown(); // Add this call
         renderNotes();
 
         // Web Speech API Setup
@@ -408,13 +366,6 @@
 - "category": Die passendste Kategorie (z.B. "Einkaufsliste", "Termin", "Idee", "Aufgabe", "Erinnerung")
 - "keywords": 3-5 relevante Schlüsselwörter, kommagetrennt
 - "summary": Eine kurze, prägnante Zusammenfassung des Inhalts
-- "is_event": Boolean, ob die Notiz einen Termin beschreibt
-- "event_details": Nur wenn is_event=true, ein Objekt mit:
-  - "title": Titel des Termins
-  - "date": Datum im Format YYYY-MM-DD
-  - "time": Zeit im Format HH:MM oder null wenn nicht angegeben
-  - "location": Ort oder null wenn nicht angegeben
-  - "attendees": Array von Teilnehmern oder null wenn nicht angegeben
 
 Notiz: ${textToAnalyze}`;
 
@@ -438,17 +389,6 @@ Notiz: ${textToAnalyze}`;
 
                 const data = await response.json();
                 const analysis = JSON.parse(data.choices[0].message.content);
-
-                // Wenn ein Termin erkannt wurde, in Kalender eintragen
-                if (analysis.is_event && analysis.event_details) {
-                    try {
-                        await createCalendarEvent(analysis.event_details);
-                        analysis.summary += " (Termin wurde im Kalender angelegt)";
-                    } catch (error) {
-                        console.error('Calendar error:', error);
-                        analysis.summary += " (Termin konnte nicht im Kalender angelegt werden)";
-                    }
-                }
 
                 // Wenn wir eine bestehende Notiz analysieren
                 if (text && selectedNoteId) {
@@ -509,68 +449,11 @@ Notiz: ${textToAnalyze}`;
             localStorage.setItem('smartVoiceNotes', JSON.stringify(notes));
         }
 
-        async function createCalendarEvent(eventDetails) {
-            if (!calDavConfig.url || !calDavConfig.user || !calDavConfig.pass || !calDavConfig.calendar) {
-                throw new Error('Kalenderkonfiguration unvollständig');
-            }
-
-            // Generate unique ID for event
-            const eventUid = `${Date.now()}@smartvoice`;
-            
-            // Format date and time for iCalendar
-            const startDate = eventDetails.date;
-            const startTime = eventDetails.time || '00:00';
-            const dtStart = `${startDate}T${startTime.replace(':', '')}00`;
-            
-            // Basic iCalendar format
-            const icsContent = `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//SmartVoice//DE
-BEGIN:VEVENT
-UID:${eventUid}
-DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z
-DTSTART:${dtStart}
-SUMMARY:${eventDetails.title}
-${eventDetails.location ? `LOCATION:${eventDetails.location}\n` : ''}
-${eventDetails.attendees ? eventDetails.attendees.map(a => `ATTENDEE:mailto:${a}\n`).join('') : ''}
-END:VEVENT
-END:VCALENDAR`.replace(/\n/g, '\r\n');
-
-            // CalDAV PUT request
-            const calendarUrl = `${calDavConfig.url}/calendars/${calDavConfig.user}/${calDavConfig.calendar}/${eventUid}.ics`;
-            
-            const response = await fetch(calendarUrl, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'text/calendar; charset=utf-8',
-                    'Authorization': 'Basic ' + btoa(`${calDavConfig.user}:${calDavConfig.pass}`)
-                },
-                body: icsContent
-            });
-
-            if (!response.ok) {
-                throw new Error(`CalDAV-Fehler: ${response.status}`);
-            }
-
-            return response;
-        }
-
         function saveApiKey() {
             apiKey = apiKeyInput.value.trim();
             localStorage.setItem('openaiApiKey', apiKey);
             updateApiKeyUI();
             alert('API-Key wurde gespeichert!');
-        }
-
-        function saveCalDavConfig() {
-            calDavConfig = {
-                url: document.getElementById('caldavUrl').value.trim(),
-                user: document.getElementById('caldavUser').value.trim(),
-                pass: document.getElementById('caldavPass').value.trim(),
-                calendar: document.getElementById('caldavCalendar').value.trim()
-            };
-            localStorage.setItem('calDavConfig', JSON.stringify(calDavConfig));
-            alert('Kalenderkonfiguration wurde gespeichert!');
         }
 
         function updateApiKeyUI() {
@@ -842,7 +725,6 @@ END:VCALENDAR`.replace(/\n/g, '\r\n');
             }
         });
         saveApiKeyBtn.addEventListener('click', saveApiKey);
-        document.getElementById('saveCalDavBtn').addEventListener('click', saveCalDavConfig);
         exportBtn.addEventListener('click', exportNotes);
 
         keywordFilter.addEventListener('change', (e) => {
@@ -855,16 +737,6 @@ END:VCALENDAR`.replace(/\n/g, '\r\n');
             renderNotes(); // Re-render notes with the new filter
         });
         
-        // Config UI controls
-        document.getElementById('toggleConfigBtn').addEventListener('click', () => {
-            const configContent = document.getElementById('configContent');
-            const toggleConfigIcon = document.getElementById('toggleConfigIcon');
-            
-            configContent.classList.toggle('hidden');
-            toggleConfigIcon.classList.toggle('fa-chevron-down');
-            toggleConfigIcon.classList.toggle('fa-chevron-up');
-        });
-
         // API Key UI controls
         document.getElementById('toggleApiKeyBtn').addEventListener('click', () => {
             const apiKeyContent = document.getElementById('apiKeyContent');
