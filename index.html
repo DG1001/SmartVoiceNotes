@@ -69,6 +69,42 @@
             </div>
         </div>
 
+        <!-- CalDAV Configuration -->
+        <div class="bg-white p-4 rounded-lg shadow-md mb-6" id="calDavSection">
+            <div class="flex justify-between items-center mb-3">
+                <h2 class="text-lg font-semibold">CalDAV Kalender Konfiguration</h2>
+                <button id="toggleCalDavBtn" class="text-blue-500 hover:text-blue-700">
+                    <i class="fas fa-chevron-down" id="toggleCalDavIcon"></i>
+                </button>
+            </div>
+            <div id="calDavContent" class="hidden">
+                <div class="flex flex-col gap-3">
+                    <input type="url" id="calDavUrlInput" placeholder="CalDAV Server URL (z.B. https://nextcloud.example.com/remote.php/dav/calendars/username/calendar)" 
+                           class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <input type="text" id="calDavUserInput" placeholder="Benutzername" 
+                               class="flex-grow px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="password" id="calDavPasswordInput" placeholder="Passwort" 
+                               class="flex-grow px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <button id="saveCalDavBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md">
+                        <i class="fas fa-save mr-2"></i> Speichern
+                    </button>
+                    <button id="testCalDavBtn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md">
+                        <i class="fas fa-check-circle mr-2"></i> Verbindung testen
+                    </button>
+                </div>
+                <p class="text-sm text-gray-500 mt-2">Ihre Kalender-Zugangsdaten werden nur lokal im Browser gespeichert und nicht an uns übertragen.</p>
+            </div>
+            <div id="calDavStatus" class="text-sm text-green-600 flex items-center hidden">
+                <i class="fas fa-check-circle mr-2"></i>
+                <span>CalDAV-Verbindung ist konfiguriert</span>
+                <button id="changeCalDavBtn" class="text-blue-500 hover:text-blue-700 ml-2 text-xs">
+                    Ändern
+                </button>
+            </div>
+        </div>
+
         <!-- Recording Section -->
         <div class="bg-white p-6 rounded-lg shadow-md mb-8">
             <h2 class="text-lg font-semibold mb-4">Neue Sprachnotiz erstellen</h2>
@@ -168,6 +204,38 @@
                                 </div>
                             </div>
                         </div>
+                        <!-- Event Details Section (only shown for events) -->
+                        <div id="eventDetailsSection" class="hidden bg-green-50 p-3 rounded-md">
+                            <h4 class="font-medium text-gray-700 mb-2">Termin-Details:</h4>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p class="text-sm text-gray-500">Titel:</p>
+                                    <p id="eventTitle" class="font-medium"></p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">Ort:</p>
+                                    <p id="eventLocation" class="font-medium"></p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">Beginn:</p>
+                                    <p id="eventStart" class="font-medium"></p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">Ende:</p>
+                                    <p id="eventEnd" class="font-medium"></p>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <p class="text-sm text-gray-500">Beschreibung:</p>
+                                <p id="eventDescription" class="mt-1"></p>
+                            </div>
+                            <div class="mt-3 flex justify-end">
+                                <span id="eventSyncStatus" class="text-xs text-gray-500 mr-2"></span>
+                                <button id="syncEventBtn" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-md text-sm">
+                                    <i class="fas fa-calendar-plus mr-1"></i> In Kalender speichern
+                                </button>
+                            </div>
+                        </div>
                         <div class="flex justify-between space-x-2 pt-4">
                             <button id="modalAnalyzeBtn" class="text-purple-500 hover:text-purple-700 flex items-center" style="display: none;">
                                 <i class="fas fa-robot mr-2"></i> Mit KI analysieren
@@ -218,12 +286,22 @@
         let apiKey = localStorage.getItem('openaiApiKey') || '';
         let currentKeywordFilter = 'all'; // 'all' or the selected keyword
         let currentCategoryFilter = 'all'; // 'all' or the selected category
+        
+        // CalDAV Configuration
+        let calDavUrl = localStorage.getItem('calDavUrl') || '';
+        let calDavUser = localStorage.getItem('calDavUser') || '';
+        let calDavPassword = localStorage.getItem('calDavPassword') || '';
 
         // Initialize
         apiKeyInput.value = apiKey;
         updateApiKeyUI();
+        document.getElementById('calDavUrlInput').value = calDavUrl;
+        document.getElementById('calDavUserInput').value = calDavUser;
+        document.getElementById('calDavPasswordInput').value = calDavPassword;
+        updateApiKeyUI();
+        updateCalDavUI();
         updateKeywordFilterDropdown();
-        updateCategoryFilterDropdown(); // Add this call
+        updateCategoryFilterDropdown();
         renderNotes();
 
         // Web Speech API Setup
@@ -367,6 +445,18 @@
 - "keywords": 3-5 relevante Schlüsselwörter, kommagetrennt
 - "summary": Eine kurze, prägnante Zusammenfassung des Inhalts
 
+Falls es sich um einen Termin handelt, füge folgende zusätzliche Felder hinzu:
+- "isEvent": true
+- "eventDetails": {
+  "title": Ein passender Titel für den Termin
+  "location": Der Ort des Termins (falls erwähnt, sonst leer)
+  "startDate": Das Startdatum und die Startzeit im ISO-Format (YYYY-MM-DDTHH:MM:SS)
+  "endDate": Das Enddatum und die Endzeit im ISO-Format (YYYY-MM-DDTHH:MM:SS), standardmäßig 1 Stunde nach Beginn
+  "description": Eine Beschreibung des Termins
+}
+
+Wenn Zeitangaben relativ sind (z.B. "morgen", "nächste Woche"), berechne das tatsächliche Datum basierend auf dem aktuellen Datum: ${new Date().toISOString().split('T')[0]}.
+
 Notiz: ${textToAnalyze}`;
 
                 const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -401,6 +491,18 @@ Notiz: ${textToAnalyze}`;
                             summary: analysis.summary
                         };
                         
+                        // Wenn es ein Termin ist, füge die Termindaten hinzu
+                        if (analysis.isEvent) {
+                            notes[noteIndex].isEvent = true;
+                            notes[noteIndex].eventDetails = analysis.eventDetails;
+                            
+                            // Aktualisiere die Modalansicht für Termine
+                            updateEventDetailsInModal(analysis.eventDetails);
+                        } else {
+                            // Verstecke Termin-Details, falls vorhanden
+                            document.getElementById('eventDetailsSection').classList.add('hidden');
+                        }
+                        
                         // Aktualisiere die Modalansicht
                         modalCategory.textContent = analysis.category;
                         modalKeywords.textContent = analysis.keywords;
@@ -420,6 +522,13 @@ Notiz: ${textToAnalyze}`;
                             summary: analysis.summary
                         }
                     };
+                    
+                    // Wenn es ein Termin ist, füge die Termindaten hinzu
+                    if (analysis.isEvent) {
+                        newNote.isEvent = true;
+                        newNote.eventDetails = analysis.eventDetails;
+                    }
+                    
                     notes.unshift(newNote);
                     resetRecordingUI();
                 }
@@ -469,6 +578,77 @@ Notiz: ${textToAnalyze}`;
             } else {
                 apiKeyContent.classList.remove('hidden');
                 apiKeyStatus.classList.add('hidden');
+            }
+        }
+        
+        function saveCalDavConfig() {
+            calDavUrl = document.getElementById('calDavUrlInput').value.trim();
+            calDavUser = document.getElementById('calDavUserInput').value.trim();
+            calDavPassword = document.getElementById('calDavPasswordInput').value.trim();
+            
+            localStorage.setItem('calDavUrl', calDavUrl);
+            localStorage.setItem('calDavUser', calDavUser);
+            localStorage.setItem('calDavPassword', calDavPassword);
+            
+            updateCalDavUI();
+            alert('CalDAV-Konfiguration wurde gespeichert!');
+        }
+        
+        function updateCalDavUI() {
+            const calDavContent = document.getElementById('calDavContent');
+            const calDavStatus = document.getElementById('calDavStatus');
+            const toggleCalDavIcon = document.getElementById('toggleCalDavIcon');
+            
+            if (calDavUrl && calDavUser && calDavPassword) {
+                calDavContent.classList.add('hidden');
+                calDavStatus.classList.remove('hidden');
+                toggleCalDavIcon.classList.remove('fa-chevron-up');
+                toggleCalDavIcon.classList.add('fa-chevron-down');
+            } else {
+                calDavContent.classList.remove('hidden');
+                calDavStatus.classList.add('hidden');
+            }
+        }
+        
+        async function testCalDavConnection() {
+            const testBtn = document.getElementById('testCalDavBtn');
+            const url = document.getElementById('calDavUrlInput').value.trim();
+            const username = document.getElementById('calDavUserInput').value.trim();
+            const password = document.getElementById('calDavPasswordInput').value.trim();
+            
+            if (!url || !username || !password) {
+                alert('Bitte füllen Sie alle CalDAV-Konfigurationsfelder aus.');
+                return;
+            }
+            
+            testBtn.disabled = true;
+            testBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Teste Verbindung...';
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'PROPFIND',
+                    headers: {
+                        'Content-Type': 'application/xml; charset=utf-8',
+                        'Depth': '0',
+                        'Authorization': 'Basic ' + btoa(username + ':' + password)
+                    },
+                    body: '<?xml version="1.0" encoding="utf-8" ?>' +
+                          '<d:propfind xmlns:d="DAV:">' +
+                          '<d:prop><d:resourcetype/></d:prop>' +
+                          '</d:propfind>'
+                });
+                
+                if (response.ok || response.status === 207) {
+                    alert('Verbindung zum CalDAV-Server erfolgreich hergestellt!');
+                } else {
+                    throw new Error(`HTTP-Fehler: ${response.status}`);
+                }
+            } catch (error) {
+                console.error('CalDAV connection test error:', error);
+                alert('Fehler bei der Verbindung zum CalDAV-Server: ' + error.message);
+            } finally {
+                testBtn.disabled = false;
+                testBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Verbindung testen';
             }
         }
 
@@ -616,6 +796,10 @@ Notiz: ${textToAnalyze}`;
                     ).join('');
                 }
 
+                // Zusätzliches Badge für Termine
+                const eventBadge = note.isEvent ? 
+                    `<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded mr-1"><i class="fas fa-calendar-alt mr-1"></i> Termin</span>` : '';
+
                 noteElement.innerHTML = `
                     <div class="flex justify-between items-start mb-2">
                         <h3 class="font-medium truncate">${note.analyzed ? note.analysis.category : 'Neue Notiz'}</h3>
@@ -624,9 +808,14 @@ Notiz: ${textToAnalyze}`;
                     <p class="text-gray-600 text-sm mb-2 line-clamp-2">${note.analyzed ? note.analysis.summary : note.text}</p>
                     <div class="flex justify-between items-center">
                         <div>${keywordsHtml}</div>
-                        ${note.analyzed ? 
-                          '<span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded"><i class="fas fa-robot mr-1"></i> KI-analyzed</span>' : 
-                          '<span class="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">Unbearbeitet</span>'}
+                        <div class="flex space-x-1">
+                            ${eventBadge}
+                            ${note.analyzed ? 
+                              '<span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded"><i class="fas fa-robot mr-1"></i> KI-analyzed</span>' : 
+                              '<span class="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">Unbearbeitet</span>'}
+                            ${note.eventSynced ? 
+                              '<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded"><i class="fas fa-check mr-1"></i> Synchronisiert</span>' : ''}
+                        </div>
                     </div>
                 `;
 
@@ -647,14 +836,67 @@ Notiz: ${textToAnalyze}`;
                 modalKeywords.textContent = note.analysis.keywords;
                 modalSummary.textContent = note.analysis.summary;
                 modalAnalyzeBtn.style.display = 'none';
+                
+                // Wenn es ein Termin ist, zeige die Termin-Details an
+                if (note.isEvent && note.eventDetails) {
+                    updateEventDetailsInModal(note.eventDetails);
+                } else {
+                    document.getElementById('eventDetailsSection').classList.add('hidden');
+                }
             } else {
                 modalCategory.textContent = 'Nicht analysiert';
                 modalKeywords.textContent = 'Nicht analysiert';
                 modalSummary.textContent = 'Diese Notiz wurde noch nicht mit der KI analysiert.';
                 modalAnalyzeBtn.style.display = 'flex';
+                document.getElementById('eventDetailsSection').classList.add('hidden');
             }
 
             noteModal.classList.remove('hidden');
+        }
+        
+        function updateEventDetailsInModal(eventDetails) {
+            const eventDetailsSection = document.getElementById('eventDetailsSection');
+            const eventTitle = document.getElementById('eventTitle');
+            const eventLocation = document.getElementById('eventLocation');
+            const eventStart = document.getElementById('eventStart');
+            const eventEnd = document.getElementById('eventEnd');
+            const eventDescription = document.getElementById('eventDescription');
+            const syncEventBtn = document.getElementById('syncEventBtn');
+            const eventSyncStatus = document.getElementById('eventSyncStatus');
+            
+            // Formatiere Datum und Uhrzeit für die Anzeige
+            const formatDateTime = (isoString) => {
+                if (!isoString) return 'Nicht angegeben';
+                const date = new Date(isoString);
+                return date.toLocaleString('de-DE', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            };
+            
+            eventTitle.textContent = eventDetails.title || 'Kein Titel';
+            eventLocation.textContent = eventDetails.location || 'Kein Ort angegeben';
+            eventStart.textContent = formatDateTime(eventDetails.startDate);
+            eventEnd.textContent = formatDateTime(eventDetails.endDate);
+            eventDescription.textContent = eventDetails.description || 'Keine Beschreibung';
+            
+            // Prüfe, ob der Termin bereits synchronisiert wurde
+            const note = notes.find(n => n.id === selectedNoteId);
+            if (note && note.eventSynced) {
+                syncEventBtn.classList.add('hidden');
+                eventSyncStatus.textContent = 'Termin wurde bereits in den Kalender eingetragen';
+                eventSyncStatus.classList.remove('text-gray-500');
+                eventSyncStatus.classList.add('text-green-600');
+            } else {
+                syncEventBtn.classList.remove('hidden');
+                eventSyncStatus.textContent = '';
+            }
+            
+            eventDetailsSection.classList.remove('hidden');
         }
 
         function resetRecordingUI() {
@@ -684,6 +926,114 @@ Notiz: ${textToAnalyze}`;
         window.addEventListener('offline', updateOnlineStatus);
         updateOnlineStatus(); // Initial check
         
+        // CalDAV Funktionen
+        async function createCalDavEvent(eventDetails) {
+            if (!calDavUrl || !calDavUser || !calDavPassword) {
+                alert('Bitte konfigurieren Sie zuerst Ihre CalDAV-Verbindung.');
+                return false;
+            }
+            
+            try {
+                // Generiere eine eindeutige UID für den Termin
+                const uid = 'smartvoice-' + Date.now() + '@smartvoice.app';
+                
+                // Formatiere Datum und Uhrzeit für iCalendar
+                const formatICalDate = (isoString) => {
+                    if (!isoString) return '';
+                    const date = new Date(isoString);
+                    return date.toISOString().replace(/[-:]/g, '').replace(/\.\d+/g, '');
+                };
+                
+                const startDate = formatICalDate(eventDetails.startDate);
+                const endDate = formatICalDate(eventDetails.endDate);
+                const now = formatICalDate(new Date().toISOString());
+                
+                // Erstelle iCalendar-Daten
+                const icalData = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//SmartVoice//NONSGML SmartVoice Notes//DE
+BEGIN:VEVENT
+UID:${uid}
+DTSTAMP:${now}
+DTSTART:${startDate}
+DTEND:${endDate}
+SUMMARY:${eventDetails.title || 'Neuer Termin'}
+LOCATION:${eventDetails.location || ''}
+DESCRIPTION:${eventDetails.description || ''}
+END:VEVENT
+END:VCALENDAR`;
+                
+                // Generiere einen Dateinamen für den Termin
+                const filename = `${uid}.ics`;
+                const eventUrl = calDavUrl.endsWith('/') ? calDavUrl + filename : calDavUrl + '/' + filename;
+                
+                // Sende den Termin an den CalDAV-Server
+                const response = await fetch(eventUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'text/calendar; charset=utf-8',
+                        'Authorization': 'Basic ' + btoa(calDavUser + ':' + calDavPassword)
+                    },
+                    body: icalData
+                });
+                
+                if (response.ok || response.status === 201 || response.status === 204) {
+                    return true;
+                } else {
+                    throw new Error(`HTTP-Fehler: ${response.status}`);
+                }
+            } catch (error) {
+                console.error('CalDAV event creation error:', error);
+                alert('Fehler beim Erstellen des Termins: ' + error.message);
+                return false;
+            }
+        }
+        
+        async function syncEventToCalendar() {
+            if (selectedNoteId) {
+                const note = notes.find(n => n.id === selectedNoteId);
+                if (note && note.isEvent && note.eventDetails) {
+                    const syncBtn = document.getElementById('syncEventBtn');
+                    const eventSyncStatus = document.getElementById('eventSyncStatus');
+                    
+                    syncBtn.disabled = true;
+                    syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Synchronisiere...';
+                    eventSyncStatus.textContent = 'Synchronisiere mit Kalender...';
+                    eventSyncStatus.classList.add('text-gray-500');
+                    
+                    try {
+                        const success = await createCalDavEvent(note.eventDetails);
+                        if (success) {
+                            // Markiere den Termin als synchronisiert
+                            const noteIndex = notes.findIndex(n => n.id === selectedNoteId);
+                            if (noteIndex !== -1) {
+                                notes[noteIndex].eventSynced = true;
+                                saveNotes();
+                                renderNotes();
+                            }
+                            
+                            eventSyncStatus.textContent = 'Termin wurde erfolgreich in den Kalender eingetragen';
+                            eventSyncStatus.classList.remove('text-gray-500');
+                            eventSyncStatus.classList.add('text-green-600');
+                            syncBtn.classList.add('hidden');
+                        } else {
+                            eventSyncStatus.textContent = 'Synchronisierung fehlgeschlagen';
+                            eventSyncStatus.classList.remove('text-gray-500');
+                            eventSyncStatus.classList.add('text-red-600');
+                        }
+                    } catch (error) {
+                        console.error('Event sync error:', error);
+                        eventSyncStatus.textContent = 'Fehler: ' + error.message;
+                        eventSyncStatus.classList.remove('text-gray-500');
+                        eventSyncStatus.classList.add('text-red-600');
+                    } finally {
+                        syncBtn.disabled = false;
+                        syncBtn.innerHTML = '<i class="fas fa-calendar-plus mr-1"></i> In Kalender speichern';
+                    }
+                }
+            }
+        }
+
         // Event Listeners
         recordBtn.addEventListener('click', () => {
             if (isRecording) {
@@ -725,6 +1075,9 @@ Notiz: ${textToAnalyze}`;
             }
         });
         saveApiKeyBtn.addEventListener('click', saveApiKey);
+        document.getElementById('saveCalDavBtn').addEventListener('click', saveCalDavConfig);
+        document.getElementById('testCalDavBtn').addEventListener('click', testCalDavConnection);
+        document.getElementById('syncEventBtn').addEventListener('click', syncEventToCalendar);
         exportBtn.addEventListener('click', exportNotes);
 
         keywordFilter.addEventListener('change', (e) => {
@@ -754,6 +1107,25 @@ Notiz: ${textToAnalyze}`;
             apiKeyContent.classList.remove('hidden');
             toggleApiKeyIcon.classList.remove('fa-chevron-down');
             toggleApiKeyIcon.classList.add('fa-chevron-up');
+        });
+        
+        // CalDAV UI controls
+        document.getElementById('toggleCalDavBtn').addEventListener('click', () => {
+            const calDavContent = document.getElementById('calDavContent');
+            const toggleCalDavIcon = document.getElementById('toggleCalDavIcon');
+            
+            calDavContent.classList.toggle('hidden');
+            toggleCalDavIcon.classList.toggle('fa-chevron-down');
+            toggleCalDavIcon.classList.toggle('fa-chevron-up');
+        });
+        
+        document.getElementById('changeCalDavBtn').addEventListener('click', () => {
+            const calDavContent = document.getElementById('calDavContent');
+            const toggleCalDavIcon = document.getElementById('toggleCalDavIcon');
+            
+            calDavContent.classList.remove('hidden');
+            toggleCalDavIcon.classList.remove('fa-chevron-down');
+            toggleCalDavIcon.classList.add('fa-chevron-up');
         });
 
         // Close modal when clicking outside
