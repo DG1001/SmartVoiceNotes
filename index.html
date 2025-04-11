@@ -69,35 +69,6 @@
             </div>
         </div>
 
-        <!-- Kalender-Konfiguration -->
-        <div class="bg-white p-4 rounded-lg shadow-md mb-6" id="calendarSection">
-            <div class="flex justify-between items-center mb-3">
-                <h2 class="text-lg font-semibold">Kalender-Konfiguration</h2>
-                <button id="toggleCalendarBtn" class="text-blue-500 hover:text-blue-700">
-                    <i class="fas fa-chevron-down" id="toggleCalendarIcon"></i>
-                </button>
-            </div>
-            <div id="calendarContent" class="hidden">
-                <div class="flex flex-col gap-3">
-                    <p class="text-sm text-gray-700">Geben Sie Ihre E-Mail-Adresse ein, um Termine als .ics-Datei zu erhalten und per E-Mail zu versenden.</p>
-                    <div class="flex flex-col sm:flex-row gap-3">
-                        <input type="email" id="calendarEmailInput" placeholder="Ihre E-Mail-Adresse" 
-                               class="flex-grow px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <button id="saveCalendarEmailBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md">
-                            <i class="fas fa-save mr-2"></i> Speichern
-                        </button>
-                    </div>
-                </div>
-                <p class="text-sm text-gray-500 mt-2">Ihre E-Mail-Adresse wird nur lokal im Browser gespeichert und nicht an uns übertragen.</p>
-            </div>
-            <div id="calendarStatus" class="text-sm text-green-600 flex items-center hidden">
-                <i class="fas fa-check-circle mr-2"></i>
-                <span>Kalender-E-Mail ist gesetzt</span>
-                <button id="changeCalendarEmailBtn" class="text-blue-500 hover:text-blue-700 ml-2 text-xs">
-                    Ändern
-                </button>
-            </div>
-        </div>
 
         <!-- Recording Section -->
         <div class="bg-white p-6 rounded-lg shadow-md mb-8">
@@ -226,7 +197,7 @@
                             <div class="mt-3 flex justify-end">
                                 <span id="eventSyncStatus" class="text-xs text-gray-500 mr-2"></span>
                                 <button id="syncEventBtn" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-md text-sm">
-                                    <i class="fas fa-calendar-plus mr-1"></i> Termin erstellen
+                                    <i class="fas fa-calendar-plus mr-1"></i> Als .ics herunterladen
                                 </button>
                             </div>
                         </div>
@@ -280,13 +251,10 @@
         let apiKey = localStorage.getItem('openaiApiKey') || '';
         let currentKeywordFilter = 'all'; // 'all' or the selected keyword
         let currentCategoryFilter = 'all'; // 'all' or the selected category
-        let calendarEmail = localStorage.getItem('calendarEmail') || '';
 
         // Initialize
         apiKeyInput.value = apiKey;
-        document.getElementById('calendarEmailInput').value = calendarEmail;
         updateApiKeyUI();
-        updateCalendarUI();
         updateKeywordFilterDropdown();
         updateCategoryFilterDropdown();
         renderNotes();
@@ -570,52 +538,6 @@ Notiz: ${textToAnalyze}`;
         }
         
         
-        // Funktion zum Speichern der Kalender-E-Mail
-        function saveCalendarEmail() {
-            const emailInput = document.getElementById('calendarEmailInput');
-            calendarEmail = emailInput.value.trim();
-            
-            if (!calendarEmail) {
-                alert('Bitte geben Sie eine E-Mail-Adresse ein.');
-                return;
-            }
-            
-            if (!isValidEmail(calendarEmail)) {
-                alert('Bitte geben Sie eine gültige E-Mail-Adresse ein.');
-                return;
-            }
-            
-            localStorage.setItem('calendarEmail', calendarEmail);
-            updateCalendarUI();
-            alert('E-Mail-Adresse wurde gespeichert!');
-        }
-        
-        // Prüfen, ob eine E-Mail-Adresse gültig ist
-        function isValidEmail(email) {
-            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            return re.test(email);
-        }
-        
-        // UI für Kalender-Konfiguration aktualisieren
-        function updateCalendarUI() {
-            const calendarContent = document.getElementById('calendarContent');
-            const calendarStatus = document.getElementById('calendarStatus');
-            const toggleCalendarIcon = document.getElementById('toggleCalendarIcon');
-            
-            if (calendarEmail) {
-                calendarContent.classList.add('hidden');
-                calendarStatus.classList.remove('hidden');
-                toggleCalendarIcon.classList.remove('fa-chevron-up');
-                toggleCalendarIcon.classList.add('fa-chevron-down');
-                
-                // E-Mail-Adresse anzeigen
-                const statusSpan = calendarStatus.querySelector('span');
-                statusSpan.textContent = `Kalender-E-Mail: ${calendarEmail}`;
-            } else {
-                calendarContent.classList.remove('hidden');
-                calendarStatus.classList.add('hidden');
-            }
-        }
 
         function exportNotes() {
             if (notes.length === 0) {
@@ -897,11 +819,6 @@ Notiz: ${textToAnalyze}`;
         
         // Kalender-Funktionen
         function createCalendarEvent(eventDetails) {
-            if (!calendarEmail) {
-                alert('Bitte geben Sie zuerst eine E-Mail-Adresse für den Kalender ein.');
-                return false;
-            }
-            
             try {
                 // Erstelle eine .ics-Datei für den Termin
                 const icsContent = generateICSFile(eventDetails);
@@ -917,19 +834,6 @@ Notiz: ${textToAnalyze}`;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                
-                // Erstelle einen mailto-Link, um die Einladung per E-Mail zu versenden
-                const subject = encodeURIComponent(eventDetails.title || 'Neuer Termin');
-                const body = encodeURIComponent(
-                    `Termin: ${eventDetails.title || 'Neuer Termin'}\n` +
-                    `Datum: ${formatDateForEmail(eventDetails.startDate)}\n` +
-                    `Uhrzeit: ${formatTimeForEmail(eventDetails.startDate)} - ${formatTimeForEmail(eventDetails.endDate)}\n` +
-                    `Ort: ${eventDetails.location || 'Kein Ort angegeben'}\n\n` +
-                    `${eventDetails.description || ''}`
-                );
-                
-                // Öffne das E-Mail-Programm
-                window.open(`mailto:${calendarEmail}?subject=${subject}&body=${body}`, '_blank');
                 
                 return true;
             } catch (error) {
@@ -970,25 +874,6 @@ END:VEVENT
 END:VCALENDAR`;
         }
         
-        function formatDateForEmail(isoString) {
-            if (!isoString) return 'Nicht angegeben';
-            const date = new Date(isoString);
-            return date.toLocaleDateString('de-DE', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-        }
-        
-        function formatTimeForEmail(isoString) {
-            if (!isoString) return 'Nicht angegeben';
-            const date = new Date(isoString);
-            return date.toLocaleTimeString('de-DE', {
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        }
         
         async function syncEventToCalendar() {
             if (selectedNoteId) {
@@ -1013,7 +898,7 @@ END:VCALENDAR`;
                                 renderNotes();
                             }
                             
-                            eventSyncStatus.textContent = 'Termin wurde erfolgreich erstellt und per E-Mail gesendet';
+                            eventSyncStatus.textContent = 'Termin wurde erfolgreich als .ics-Datei heruntergeladen';
                             eventSyncStatus.classList.remove('text-gray-500');
                             eventSyncStatus.classList.add('text-green-600');
                             syncBtn.classList.add('hidden');
@@ -1076,7 +961,6 @@ END:VCALENDAR`;
             }
         });
         saveApiKeyBtn.addEventListener('click', saveApiKey);
-        document.getElementById('saveCalendarEmailBtn').addEventListener('click', saveCalendarEmail);
         document.getElementById('syncEventBtn').addEventListener('click', syncEventToCalendar);
         exportBtn.addEventListener('click', exportNotes);
 
@@ -1109,24 +993,6 @@ END:VCALENDAR`;
             toggleApiKeyIcon.classList.add('fa-chevron-up');
         });
         
-        // Kalender UI controls
-        document.getElementById('toggleCalendarBtn').addEventListener('click', () => {
-            const calendarContent = document.getElementById('calendarContent');
-            const toggleCalendarIcon = document.getElementById('toggleCalendarIcon');
-            
-            calendarContent.classList.toggle('hidden');
-            toggleCalendarIcon.classList.toggle('fa-chevron-down');
-            toggleCalendarIcon.classList.toggle('fa-chevron-up');
-        });
-        
-        document.getElementById('changeCalendarEmailBtn').addEventListener('click', () => {
-            const calendarContent = document.getElementById('calendarContent');
-            const toggleCalendarIcon = document.getElementById('toggleCalendarIcon');
-            
-            calendarContent.classList.remove('hidden');
-            toggleCalendarIcon.classList.remove('fa-chevron-down');
-            toggleCalendarIcon.classList.add('fa-chevron-up');
-        });
 
         // Close modal when clicking outside
         noteModal.addEventListener('click', (e) => {
