@@ -1,4 +1,4 @@
-# <img src="logo.png" alt="Secure Password Generator Logo" width="48"> SmartVoice Notes - KI-gestützte Sprachnotizen
+# <img src="logo.png" alt="SmartVoice Notes Logo" width="48"> SmartVoice Notes - KI-gestützte Sprachnotizen
 
 ![Screenshot](screenshot.png) 
 
@@ -8,6 +8,8 @@ SmartVoice Notes ist eine Webanwendung zur Erstellung und Analyse von Sprachnoti
 
 - 🎤 Sprachnotizen aufnehmen und als Text transkribieren
 - 🤖 KI-Analyse von Notizen (Kategorisierung, Schlüsselwörter, Zusammenfassung)
+- 📅 Automatische Terminerkennung und Erstellung von Kalenderereignissen
+- 📆 Export von Terminen als .ics-Dateien für Kalender-Import
 - 💾 Lokale Speicherung aller Notizen im Browser
 - 🔐 Sichere Speicherung des OpenAI API-Keys (nur lokal)
 - 📥 Export aller Notizen als JSON-Datei
@@ -20,6 +22,7 @@ SmartVoice Notes ist eine Webanwendung zur Erstellung und Analyse von Sprachnoti
 - [Font Awesome](https://fontawesome.com/) für Icons
 - Web Speech API für Spracherkennung
 - OpenAI API für KI-Analyse
+- iCalendar-Format für Kalenderereignisse
 
 ## Installation & Nutzung
 
@@ -28,6 +31,10 @@ SmartVoice Notes ist eine Webanwendung zur Erstellung und Analyse von Sprachnoti
    - OpenAI API-Key in den Einstellungen eingeben
    - Der Key wird nur lokal im Browser gespeichert
 3. Aufnahme starten und Notizen erstellen
+4. Bei Terminen:
+   - Die KI erkennt automatisch Termine in Ihren Notizen
+   - Termine können als .ics-Datei heruntergeladen werden
+   - Die .ics-Datei kann in jeden Kalender importiert werden (Google, Outlook, Apple, etc.)
 
 **Empfohlene Browser:** Chrome oder Edge (beste Unterstützung für Web Speech API)
 
